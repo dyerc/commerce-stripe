@@ -247,7 +247,7 @@ abstract class SubscriptionGateway extends Gateway
 
             $list = StripeInvoice::all($params);
 
-            if (isset($list['data'])) {
+            if (isset($list['data']) && $list['data']) {
                 $data = $list['data'];
                 $last = end($data);
                 $after = $last['id'];
