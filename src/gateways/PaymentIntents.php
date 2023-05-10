@@ -378,14 +378,16 @@ class PaymentIntents extends BaseGateway
     {
         $this->configureStripeClient();
         $subscriptionData = $this->_getExpandedSubscriptionData($subscription);
-        $intentData = $subscriptionData['latest_invoice']['payment_intent'];
+        if ($subscriptionData['latest_invoice']) {
+            $intentData = $subscriptionData['latest_invoice']['payment_intent'];
 
-        if (in_array($subscriptionData['status'], ['incomplete', 'past_due', 'unpaid'])) {
-            switch ($intentData['status']) {
-                case 'requires_payment_method':
-                    return $subscription->hasStarted ? Craft::t('commerce-stripe', 'To resume the subscription, please provide a valid payment method.') : Craft::t('commerce-stripe', 'To start the subscription, please provide a valid payment method.');
-                case 'requires_action':
-                    return $subscription->hasStarted ? Craft::t('commerce-stripe', 'To resume the subscription, please complete 3DS authentication.') : Craft::t('commerce-stripe', 'To start the subscription, please complete 3DS authentication.');
+            if (in_array($subscriptionData['status'], ['incomplete', 'past_due', 'unpaid'])) {
+                switch ($intentData['status']) {
+                    case 'requires_payment_method':
+                        return $subscription->hasStarted ? Craft::t('commerce-stripe', 'To resume the subscription, please provide a valid payment method.') : Craft::t('commerce-stripe', 'To start the subscription, please provide a valid payment method.');
+                    case 'requires_action':
+                        return $subscription->hasStarted ? Craft::t('commerce-stripe', 'To resume the subscription, please complete 3DS authentication.') : Craft::t('commerce-stripe', 'To start the subscription, please complete 3DS authentication.');
+                }
             }
         }
 
@@ -399,16 +401,18 @@ class PaymentIntents extends BaseGateway
     {
         $this->configureStripeClient();
         $subscriptionData = $this->_getExpandedSubscriptionData($subscription);
-        $intentData = $subscriptionData['latest_invoice']['payment_intent'];
+        if ($subscriptionData['latest_invoice']) {
+            $intentData = $subscriptionData['latest_invoice']['payment_intent'];
 
-        if (in_array($subscriptionData['status'], ['incomplete', 'past_due', 'unpaid'])) {
-            $clientSecret = $intentData['client_secret'];
-            switch ($intentData['status']) {
-                case 'requires_payment_method':
-                case 'requires_confirmation':
-                    return $this->getPaymentFormHtml(['clientSecret' => $clientSecret]);
-                case 'requires_action':
-                    return $this->getPaymentFormHtml(['clientSecret' => $clientSecret, 'scenario' => '3ds']);
+            if (in_array($subscriptionData['status'], ['incomplete', 'past_due', 'unpaid'])) {
+                $clientSecret = $intentData['client_secret'];
+                switch ($intentData['status']) {
+                    case 'requires_payment_method':
+                    case 'requires_confirmation':
+                        return $this->getPaymentFormHtml(['clientSecret' => $clientSecret]);
+                    case 'requires_action':
+                        return $this->getPaymentFormHtml(['clientSecret' => $clientSecret, 'scenario' => '3ds']);
+                }
             }
         }
 
@@ -423,9 +427,13 @@ class PaymentIntents extends BaseGateway
         $this->configureStripeClient();
         $subscription = $this->refreshSubscriptionData($subscription);
         $subscriptionData = $subscription->getSubscriptionData();
-        $intentData = $subscriptionData['latest_invoice']['payment_intent'];
+        if ($subscriptionData['latest_invoice']) {
+            $intentData = $subscriptionData['latest_invoice']['payment_intent'];
 
-        return in_array($subscriptionData['status'], ['incomplete', 'past_due', 'unpaid']) && in_array($intentData['status'], ['requires_payment_method', 'requires_confirmation', 'requires_action']);
+            return in_array($subscriptionData['status'], ['incomplete', 'past_due', 'unpaid']) && in_array($intentData['status'], ['requires_payment_method', 'requires_confirmation', 'requires_action']);
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -619,7 +627,7 @@ class PaymentIntents extends BaseGateway
         $this->configureStripeClient();
         $subscriptionData = $subscription->getSubscriptionData();
 
-        if (empty($subscriptionData['latest_invoice']['payment_intent'])) {
+        if ($subscriptionData['latest_invoice'] && empty($subscriptionData['latest_invoice']['payment_intent'])) {
             $stripeSubscription = StripeSubscription::retrieve([
                 'id' => $subscription->reference,
                 'expand' => ['latest_invoice.payment_intent'],
